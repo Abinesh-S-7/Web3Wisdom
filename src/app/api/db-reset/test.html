@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Reset Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        form {
+            background-color: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .warning {
+            color: #ff0000;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        #result {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Database Reset Tool</h1>
+    <div class="warning">
+        WARNING: This tool will modify your database. Make sure you know what you're doing!
+    </div>
+    
+    <form id="resetForm">
+        <label for="command">Select Command:</label>
+        <select id="command" name="command" required>
+            <option value="">Select a command</option>
+            <option value="push">Push Schema (npx prisma db push)</option>
+            <option value="migrate">Run Migrations (npx prisma migrate dev)</option>
+            <option value="reset">Reset Database (delete all data)</option>
+        </select>
+        
+        <label for="confirmation">Type "CONFIRM_RESET_DB" to confirm:</label>
+        <input type="text" id="confirmation" name="confirmation" required placeholder="CONFIRM_RESET_DB">
+        
+        <button type="submit">Execute Command</button>
+    </form>
+    
+    <h2>Result:</h2>
+    <div id="result">No command executed yet.</div>
+    
+    <script>
+        document.getElementById('resetForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const command = document.getElementById('command').value;
+            const confirmation = document.getElementById('confirmation').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!command) {
+                resultDiv.textContent = "Error: Please select a command.";
+                return;
+            }
+            
+            if (confirmation !== 'CONFIRM_RESET_DB') {
+                resultDiv.textContent = "Error: Confirmation text does not match 'CONFIRM_RESET_DB'.";
+                return;
+            }
+            
+            resultDiv.textContent = "Executing command, please wait...";
+            
+            try {
+                const response = await fetch('/api/db-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        command: command,
+                        confirm: confirmation
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                // Format the JSON response
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                
+                if (response.ok) {
+                    resultDiv.style.backgroundColor = '#e6ffe6';
+                } else {
+                    resultDiv.style.backgroundColor = '#ffe6e6';
+                }
+            } catch (error) {
+                resultDiv.textContent = "Error executing command: " + error.message;
+                resultDiv.style.backgroundColor = '#ffe6e6';
+            }
+        });
+    </script>
+</body>
+</html> 
