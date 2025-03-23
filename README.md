@@ -40,7 +40,7 @@ Web3Wisdom is built using modern web technologies:
 Web3Wisdom uses direct wallet-to-wallet transactions for course purchases and refunds rather than custom smart contracts. The platform's admin wallet address that processes all transactions is:
 
 ```
-0x983c601C20dDD0C9729D3167700a06b933D7b0d3
+0xfa29ea99B3FcaB327D87053D59a283093Add9041
 ```
 
 For refunds, the platform implements a verification system that checks course completion status (100%) before processing the return of funds from the admin wallet to the student wallet.
