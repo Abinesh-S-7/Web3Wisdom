@@ -26,32 +26,6 @@ Web3Wisdom aims to democratize blockchain education by creating an ecosystem whe
 
 We believe education is the foundation of Web3 adoption, and by making learning interactive, practical, and rewarding, we can accelerate the transition to a more decentralized future.
 
-## Screenshots
-
-### Homepage
-![Homepage](https://via.placeholder.com/800x450?text=Web3Wisdom+Homepage)
-*The main landing page featuring course offerings, brain games, and wallet connection options*
-
-### Course Selection
-![Course Selection](https://via.placeholder.com/800x450?text=Course+Selection)
-*Interactive course selection interface with purchase options*
-
-### Brain Games
-![Brain Games](https://via.placeholder.com/800x450?text=Brain+Games)
-*Educational games that reinforce blockchain concepts*
-
-### Wallet Integration
-![Wallet Integration](https://via.placeholder.com/800x450?text=Wallet+Integration)
-*Seamless Ethereum wallet connection for course purchases*
-
-### Store
-![Store](https://via.placeholder.com/800x450?text=Web3Wisdom+Store)
-*Merchandise and educational resources available for purchase*
-
-### Admin Refund Panel
-![Admin Panel](https://via.placeholder.com/800x450?text=Admin+Refund+Panel)
-*Administrative interface for processing course refunds*
-
 ## Technical Implementation
 
 Web3Wisdom is built using modern web technologies:
