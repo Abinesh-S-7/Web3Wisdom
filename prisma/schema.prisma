@@ -20,6 +20,7 @@ model User {
   sessions      Session[]
   enrollments   Enrollment[]
   progress      CourseProgress[]
+  transactions  CourseTransaction[]
 }
 
 model Account {
@@ -90,4 +91,18 @@ model CourseProgress {
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+}
+
+model CourseTransaction {
+  id              String   @id @default(cuid())
+  userId          String
+  courseTitle     String   // Store title directly for easier retrieval
+  walletAddress   String
+  transactionHash String   // Ethereum transaction hash
+  purchaseDate    DateTime @default(now())
+  price           Float    @default(0.03) // Price in ETH
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseTitle])
+  @@index([walletAddress])
 } 

@@ -57,107 +57,28 @@ declare global {
   }
 }
 
-// Add the reward function type and implementation
-const awardGameReward = async (walletAddress: string): Promise<boolean> => {
+// Function to award rewards for game completion
+const awardGameReward = async (walletAddress: string, rewardAmount: number): Promise<boolean> => {
   if (!walletAddress || !window.ethereum) {
-    console.error("No wallet connected");
-    return false;
+    console.error("No wallet connected")
+    return false
   }
-
+  
   try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
+    // For demonstration purposes, just log the reward
+    console.log(`Award ${rewardAmount} tokens to ${walletAddress}`)
     
-    // EduChain testnet token contract address and ABI
-    const tokenContract = new ethers.Contract(
-      "0xbF188D68de8f9C232cC421dF11aa16d06b506BD1", // Your EduChain token contract address
-      [
-        "function transfer(address to, uint256 amount) public returns (bool)",
-        "function balanceOf(address account) public view returns (uint256)"
-      ],
-      signer
-    );
-
-    // Convert 0.03 tokens to wei (using 18 decimals as standard)
-    const amount = ethers.parseEther("0.03");
-
-    // Check if sender has enough balance
-    const senderAddress = await signer.getAddress();
-    const balance = await tokenContract.balanceOf(senderAddress);
+    // In a real implementation, you would call a smart contract
+    // const contract = new ethers.Contract(contractAddress, abi, signer)
+    // const tx = await contract.awardTokens(walletAddress, rewardAmount)
+    // await tx.wait()
     
-    if (balance < amount) {
-      console.error("Insufficient token balance");
-      return false;
-    }
-
-    // Send the reward
-    const tx = await tokenContract.transfer(walletAddress, amount);
-    await tx.wait();
-
-    console.log("Reward sent successfully!");
-    return true;
+    return true
   } catch (error) {
-    console.error("Error sending reward:", error);
-    return false;
+    console.error("Error awarding tokens:", error)
+    return false
   }
-};
-
-// Add the buyCourse function after the awardGameReward function
-const buyCourse = async (walletAddress: string, courseTitle: string): Promise<boolean> => {
-  if (!walletAddress || !window.ethereum) {
-    toast.error("Please connect your wallet first");
-    return false;
-  }
-
-  try {
-    const adminAddress = "0x983c601C20dDD0C9729D3167700a06b933D7b0d3";
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    
-    const tx = {
-      to: adminAddress,
-      value: ethers.parseEther("0.03")
-    };
-    
-    const transaction = await signer.sendTransaction(tx);
-    const etherscanLink = `https://sepolia.etherscan.io/tx/${transaction.hash}`;
-    
-    toast.info(
-      <div>
-        Processing purchase... 
-        <a 
-          href={etherscanLink} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          style={{color: '#4CAF50', marginLeft: '5px', textDecoration: 'underline'}}
-        >
-          View on Etherscan
-        </a>
-      </div>,
-      { autoClose: false }
-    );
-    
-    await transaction.wait();
-    
-    // Update purchased courses list
-    setPurchasedCourses(prev => {
-      if (!prev.includes(courseTitle)) {
-        // Store purchase in local storage
-        const updatedCourses = [...prev, courseTitle];
-        localStorage.setItem('purchasedCourses', JSON.stringify(updatedCourses));
-        return updatedCourses;
-      }
-      return prev;
-    });
-    
-    toast.success('Course purchased successfully!');
-    return true;
-  } catch (error: any) {
-    console.error("Error purchasing course:", error);
-    toast.error('Failed to purchase course: ' + error.message);
-    return false;
-  }
-};
+}
 
 const SudokuGame = ({ onClose, walletAddress }: GameProps) => {
   const generateSudoku = () => {
@@ -1132,12 +1053,12 @@ const CourseVideo = ({ onClose, courseTitle, walletAddress }: { onClose: () => v
       // Check if video is completed (100% watched)
       if (currentProgress >= 100 && !isCompleted && walletAddress) {
         setIsCompleted(true);
-        handleReward();
+        hhandleReward();
       }
     }
   };
 
-  const handleReward = async () => {
+  const hhandleReward = async () => {
     try {
       if (!window.ethereum) {
         throw new Error("Please install MetaMask");
@@ -1147,7 +1068,7 @@ const CourseVideo = ({ onClose, courseTitle, walletAddress }: { onClose: () => v
       const signer = await provider.getSigner();
       
       const tx = {
-        to: "0xbF188D68de8f9C232cC421dF11aa16d06b506BD1",
+        to: "0x983c601C20dDD0C9729D3167700a06b933D7b0d3",
         value: ethers.parseEther("0.03")
       };
       
@@ -1218,19 +1139,22 @@ const CourseVideo = ({ onClose, courseTitle, walletAddress }: { onClose: () => v
 export default function Home() {
   const { data: session } = useSession()
   const router = useRouter()
+  const [activeContent, setActiveContent] = useState("")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
   const [walletAddress, setWalletAddress] = useState("")
   const [selectedInterest, setSelectedInterest] = useState("")
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [activeContent, setActiveContent] = useState("")
-  const [showExploreCourses, setShowExploreCourses] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showRegisterModal, setShowRegisterModal] = useState(false)
-  const [userProgress, setUserProgress] = useState<any[]>([])
+  const [userProgress, setUserProgress] = useState<{ 
+    course: { title: string; description?: string }; 
+    progress: number 
+  }[]>([])
+  const [showExploreCourses, setShowExploreCourses] = useState(false)
   const [loginCredentials, setLoginCredentials] = useState({ 
     email: "", 
-    password: "",
-    isGmail: false
+    password: "", 
+    isGmail: false 
   })
   const [registerCredentials, setRegisterCredentials] = useState({ 
     name: "", 
@@ -1251,7 +1175,7 @@ export default function Home() {
   const [showQuiz, setShowQuiz] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<{ title: string; description: string } | null>(null)
   const [purchasedCourses, setPurchasedCourses] = useState<string[]>([])
-
+  
   const contentMap = {
     "blockchain-basics": "Blockchain Basics: Learn the fundamentals of distributed ledger technology.",
     "web3-development": "Web3 Development: Master the tools and frameworks for building decentralized applications.",
@@ -1268,16 +1192,44 @@ export default function Home() {
     setActiveContent(contentMap[key as keyof typeof contentMap])
   }
 
+  // Add function to fetch purchases from database
+  const fetchPurchases = async () => {
+    if (!session) return;
+    
+    try {
+      const response = await fetch('/api/purchases');
+      if (!response.ok) {
+        throw new Error('Failed to fetch purchases');
+      }
+      
+      const data = await response.json();
+      if (data && Array.isArray(data.purchases)) {
+        // Extract course titles from purchases
+        const purchasedTitles = data.purchases.map((purchase: any) => purchase.courseTitle);
+        
+        // Update state and localStorage
+        setPurchasedCourses(purchasedTitles);
+        localStorage.setItem('purchasedCourses', JSON.stringify(purchasedTitles));
+      }
+    } catch (error) {
+      console.error('Error fetching purchases:', error);
+    }
+  };
+
+  // Modify the useEffect to fetch purchases when session changes
   useEffect(() => {
     setIsLoaded(true)
     if (session) {
       // Fetch user progress when logged in
       fetchUserProgress()
+      // Fetch user's purchased courses
+      fetchPurchases()
     }
   }, [session])
-
+  
+  // Load purchased courses from localStorage on component mount
+  // This serves as a fallback if database fetch fails
   useEffect(() => {
-    // Load purchased courses from localStorage
     const storedCourses = localStorage.getItem('purchasedCourses')
     if (storedCourses) {
       setPurchasedCourses(JSON.parse(storedCourses))
@@ -1327,6 +1279,10 @@ export default function Home() {
 
   const disconnectWallet = () => {
     setWalletAddress("")
+    // Clear purchased courses when logging out
+    setPurchasedCourses([])
+    localStorage.removeItem('purchasedCourses')
+    toast.info("Wallet disconnected and purchases cleared")
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -1544,7 +1500,7 @@ export default function Home() {
         <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md">
           <div className="relative w-full pt-[56.25%]">
             <iframe 
-              className="absolute top-0 left-0 w-full h-full rounded-lg" 
+              className="absolute top-0 left-0 w-full h-full" 
               src="https://www.youtube.com/embed/17QRFlml4pA" 
               title="DeFi Explained" 
               frameBorder="0" 
@@ -1990,6 +1946,247 @@ export default function Home() {
     }
   ];
 
+  // Update the CourseCard component to maintain original UI but restrict access
+  const CourseCard = ({ title, description, imageSrc, onClick }: { title: string; description: string; imageSrc: string; onClick: () => void }) => {
+    const isPurchased = purchasedCourses.includes(title);
+    const isLoggedInAndConnected = session && walletAddress;
+    
+    // Find course progress
+    const courseProgress = userProgress.find(progress => progress.course.title === title);
+    const isComplete = courseProgress && courseProgress.progress === 100;
+    
+    return (
+      <div 
+        className="course-card w-full p-3 h-auto border border-input rounded-md bg-background hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 relative flex flex-col items-center gap-2 cursor-pointer"
+        onClick={() => {
+          if (isPurchased && isLoggedInAndConnected) {
+            onClick();
+          } else {
+            toast.warning(
+              !session 
+                ? "Please login to access courses" 
+                : !walletAddress
+                  ? "Please connect your wallet to access courses"
+                  : "Please purchase this course to access it"
+            );
+          }
+        }}
+      >
+        <div className="text-2xl">{title.charAt(0)}</div>
+        <div className="text-sm font-medium">{title}</div>
+        
+        {/* Purchased badge - only show if wallet is connected and logged in */}
+        {isPurchased && isLoggedInAndConnected && (
+          <div className="absolute top-1 right-1 bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded-full">
+            Purchased
+          </div>
+        )}
+        
+        {/* Buy button - only show if not purchased, wallet is connected, and logged in */}
+        {!isPurchased && isLoggedInAndConnected && (
+          <Button
+            size="sm"
+            variant="default"
+            className="absolute bottom-1 right-1 bg-green-600 hover:bg-green-700 text-white text-xs py-0 px-2 h-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleBuyCourse(title);
+            }}
+          >
+            Buy
+          </Button>
+        )}
+
+        {/* Refund button - only show if course is purchased AND completed 100% */}
+        {isPurchased && isLoggedInAndConnected && isComplete && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="absolute bottom-1 right-1 border-red-600 text-red-600 hover:bg-red-50 text-xs py-0 px-2 h-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRefund(title);
+            }}
+          >
+            Refund
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  // Modify the handleBuyCourse function to send ETH from student to admin
+  const handleBuyCourse = async (courseTitle: string) => {
+    if (!walletAddress || !window.ethereum) {
+      toast.error("Please connect your wallet first");
+      return false;
+    }
+
+    try {
+      // Admin wallet address to receive payment
+      const adminAddress = "0x983c601C20dDD0C9729D3167700a06b933D7b0d3";
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      // Create transaction to send 0.03 ETH to admin
+      const tx = {
+        to: adminAddress,
+        value: ethers.parseEther("0.03")
+      };
+      
+      // Request user confirmation and send transaction
+      const transaction = await signer.sendTransaction(tx);
+      const etherscanLink = `https://sepolia.etherscan.io/tx/${transaction.hash}`;
+      
+      toast.info(
+        <div>
+          Processing purchase... 
+          <a 
+            href={etherscanLink} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style={{color: '#4CAF50', marginLeft: '5px', textDecoration: 'underline'}}
+          >
+            View on Etherscan
+          </a>
+        </div>,
+        { autoClose: false }
+      );
+      
+      // Wait for transaction confirmation
+      await transaction.wait();
+      
+      // Store the purchase in localStorage for immediate use
+      const storedCourses = localStorage.getItem('purchasedCourses');
+      let coursesArray: string[] = storedCourses ? JSON.parse(storedCourses) : [];
+      
+      if (!coursesArray.includes(courseTitle)) {
+        coursesArray.push(courseTitle);
+        localStorage.setItem('purchasedCourses', JSON.stringify(coursesArray));
+      }
+      
+      // Store the purchase in the database if user is logged in
+      if (session) {
+        try {
+          // Send purchase data to API endpoint
+          const response = await fetch('/api/purchases', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              courseTitle,
+              walletAddress,
+              transactionHash: transaction.hash
+            }),
+          });
+
+          if (!response.ok) {
+            console.error('Failed to store purchase in database');
+          }
+        } catch (err) {
+          console.error('Error storing purchase in database:', err);
+        }
+      }
+      
+      // Update state to reflect the new purchase
+      setPurchasedCourses(coursesArray);
+      
+      toast.success('Course purchased successfully!');
+      return true;
+    } catch (error: any) {
+      console.error("Error purchasing course:", error);
+      toast.error('Failed to purchase course: ' + error.message);
+      return false;
+    }
+  };
+
+  // Add function to handle refund
+  const handleRefund = async (courseTitle: string) => {
+    if (!walletAddress || !window.ethereum) {
+      toast.error("Please connect your wallet first");
+      return false;
+    }
+
+    try {
+      // Only continue if this course was purchased
+      if (!purchasedCourses.includes(courseTitle)) {
+        toast.error("You haven't purchased this course");
+        return false;
+      }
+
+      toast.info("Processing refund request...");
+
+      // Student wallet address to receive refund
+      const studentAddress = walletAddress;
+      
+      // In a real app, we'd send the refund request to the server
+      try {
+        const response = await fetch('/api/refunds', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            courseTitle,
+            studentAddress
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to submit refund request');
+        }
+      } catch (apiError) {
+        console.error('API error:', apiError);
+        // Continue with local state update even if API fails
+      }
+      
+      // Open admin page in a new window instead of relying on a link
+      window.open('/admin', '_blank', 'noopener,noreferrer');
+      
+      // Display toast with instructions for admin
+      toast.info(
+        <div>
+          Refund request submitted! For the demo:
+          <ol className="mt-2 list-decimal pl-5">
+            <li>Use the admin page that just opened in a new window</li>
+            <li>Connect with admin wallet (0x983c601...)</li>
+            <li>Approve the refund to send ETH back to student wallet</li>
+          </ol>
+        </div>,
+        { autoClose: false }
+      );
+      
+      // Remove the purchase from localStorage
+      const storedCourses = localStorage.getItem('purchasedCourses');
+      if (storedCourses) {
+        let coursesArray: string[] = JSON.parse(storedCourses);
+        coursesArray = coursesArray.filter(course => course !== courseTitle);
+        localStorage.setItem('purchasedCourses', JSON.stringify(coursesArray));
+        
+        // Update state to reflect the removal
+        setPurchasedCourses(coursesArray);
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error("Error processing refund:", error);
+      toast.error('Failed to process refund: ' + error.message);
+      return false;
+    }
+  };
+
+  const handleSignOut = async () => {
+    // Disconnect wallet
+    setWalletAddress("")
+    // Clear purchased courses from state but not from localStorage
+    // since localStorage will be reloaded from DB on next login
+    setPurchasedCourses([])
+    // Sign out from NextAuth
+    await signOut()
+    toast.info("Logged out and wallet disconnected")
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
@@ -2043,7 +2240,7 @@ export default function Home() {
                     </motion.div>
                   )}
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="ghost" onClick={() => signOut()}>
+                    <Button variant="ghost" onClick={() => handleSignOut()}>
                       Logout
                     </Button>
                   </motion.div>
@@ -2267,27 +2464,13 @@ export default function Home() {
               </h2>
               <div className="grid grid-cols-2 gap-4">
                 {domains.map((domain, index) => (
-                  <div
+                  <CourseCard
                     key={index}
-                    className="w-full p-3 h-auto border border-input rounded-md bg-background hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 relative flex flex-col items-center gap-2 cursor-pointer"
+                    title={domain.title}
+                    description={domain.description}
+                    imageSrc={`https://via.placeholder.com/300?text=${domain.title}`}
                     onClick={() => handleDomainClick(domain)}
-                  >
-                    <div className="text-2xl">{domain.title.charAt(0)}</div>
-                    <div className="text-sm font-medium">{domain.title}</div>
-                    {walletAddress && (
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="absolute bottom-1 right-1 bg-green-600 hover:bg-green-700 text-white text-xs py-0 px-2 h-6"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          buyCourse(walletAddress, domain.title);
-                        }}
-                      >
-                        Buy
-                      </Button>
-                    )}
-                  </div>
+                  />
                 ))}
               </div>
             </motion.div>
