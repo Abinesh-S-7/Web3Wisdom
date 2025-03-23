@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, Menu, X, RefreshCw } from "lucide-react"
+import { Search, Menu, X, RefreshCw, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -63,7 +63,7 @@ const awardGameReward = async (walletAddress: string, rewardAmount: number): Pro
     console.error("No wallet connected")
     return false
   }
-  
+
   try {
     // For demonstration purposes, just log the reward
     console.log(`Award ${rewardAmount} tokens to ${walletAddress}`)
@@ -1053,12 +1053,12 @@ const CourseVideo = ({ onClose, courseTitle, walletAddress }: { onClose: () => v
       // Check if video is completed (100% watched)
       if (currentProgress >= 100 && !isCompleted && walletAddress) {
         setIsCompleted(true);
-        hhandleReward();
+        handleReward();
       }
     }
   };
 
-  const hhandleReward = async () => {
+  const handleReward = async () => {
     try {
       if (!window.ethereum) {
         throw new Error("Please install MetaMask");
@@ -1153,8 +1153,8 @@ export default function Home() {
   const [showExploreCourses, setShowExploreCourses] = useState(false)
   const [loginCredentials, setLoginCredentials] = useState({ 
     email: "", 
-    password: "", 
-    isGmail: false 
+    password: "",
+    isGmail: false
   })
   const [registerCredentials, setRegisterCredentials] = useState({ 
     name: "", 
@@ -1175,7 +1175,7 @@ export default function Home() {
   const [showQuiz, setShowQuiz] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<{ title: string; description: string } | null>(null)
   const [purchasedCourses, setPurchasedCourses] = useState<string[]>([])
-  
+
   const contentMap = {
     "blockchain-basics": "Blockchain Basics: Learn the fundamentals of distributed ledger technology.",
     "web3-development": "Web3 Development: Master the tools and frameworks for building decentralized applications.",
@@ -1370,7 +1370,7 @@ export default function Home() {
       setRegisterError("Please fill in all fields");
       return;
     }
-
+    
     if (registerCredentials.password !== registerCredentials.confirmPassword) {
       setRegisterError("Passwords do not match");
       return;
@@ -1406,7 +1406,7 @@ export default function Home() {
 
       // Registration successful
       setRegisterSuccess(true);
-      setRegisterCredentials({
+      setRegisterCredentials({ 
         name: '',
         email: '',
         password: '',
@@ -1592,6 +1592,36 @@ export default function Home() {
                   : 0
               }%</p>
             </div>
+          </div>
+        </motion.div>
+      </div>
+    )
+  }
+
+  // Replace with StoreSection component
+  const StoreSection = () => {
+    if (!session) return null
+
+    const handleStoreClick = () => {
+      window.open('https://fanciful-kringle-15ef6b.netlify.app/', '_blank', 'noopener,noreferrer');
+    };
+
+    return (
+      <div className="fixed top-20 right-4 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 z-40 cursor-pointer" onClick={handleStoreClick}>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileHover={{ scale: 1.03 }}
+          className="space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Store</h2>
+            <ShoppingCart className="h-5 w-5 text-blue-600" />
+          </div>
+          
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+            <p className="font-medium text-blue-700 dark:text-blue-300">Click to visit our store</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Find exclusive merchandise and resources</p>
           </div>
         </motion.div>
       </div>
@@ -1951,11 +1981,13 @@ export default function Home() {
     const isPurchased = purchasedCourses.includes(title);
     const isLoggedInAndConnected = session && walletAddress;
     
-    // Find course progress
-    const courseProgress = userProgress.find(progress => progress.course.title === title);
-    const isComplete = courseProgress && courseProgress.progress === 100;
-    
-    return (
+    // Find course progress - check if this course is completed (100%)
+    const courseProgress = userProgress.find(progress => 
+      progress.course.title === title || progress.course === title
+    );
+    const isComplete = courseProgress && courseProgress.progress >= 100;
+
+  return (
       <div 
         className="course-card w-full p-3 h-auto border border-input rounded-md bg-background hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 relative flex flex-col items-center gap-2 cursor-pointer"
         onClick={() => {
@@ -1974,6 +2006,16 @@ export default function Home() {
       >
         <div className="text-2xl">{title.charAt(0)}</div>
         <div className="text-sm font-medium">{title}</div>
+        
+        {/* Progress indicator for purchased courses */}
+        {isPurchased && isLoggedInAndConnected && courseProgress && (
+          <div className="w-full mt-1 bg-gray-200 rounded-full h-1.5">
+            <div 
+              className="bg-blue-600 h-1.5 rounded-full" 
+              style={{ width: `${courseProgress.progress}%` }}
+            ></div>
+          </div>
+        )}
         
         {/* Purchased badge - only show if wallet is connected and logged in */}
         {isPurchased && isLoggedInAndConnected && (
@@ -2115,12 +2157,72 @@ export default function Home() {
         return false;
       }
 
+      // Find course progress to verify it's completed
+      const courseProgress = userProgress.find(progress => 
+        (progress.course.title === courseTitle || progress.course === courseTitle)
+      );
+      
+      if (!courseProgress || courseProgress.progress < 100) {
+        toast.error("You must complete the course 100% before requesting a refund");
+        return false;
+      }
+
       toast.info("Processing refund request...");
 
       // Student wallet address to receive refund
       const studentAddress = walletAddress;
       
-      // In a real app, we'd send the refund request to the server
+      // Store refund request details in localStorage to share with admin page
+      const refundRequest = {
+        id: Date.now().toString(),
+        courseTitle,
+        studentAddress,
+        userName: session?.user?.name || "Unknown User",
+        requestDate: new Date().toISOString(),
+        amount: "0.03"
+      };
+      
+      // Store in localStorage for admin page to access
+      localStorage.setItem('pendingRefund', JSON.stringify(refundRequest));
+      
+      // Give the user options for how to open the admin page
+      const openAdminPage = window.confirm(
+        "Refund request submitted! Would you like to open the admin page in a new window?\n\n" +
+        "Click OK to open the admin page now, or Cancel to open it later."
+      );
+      
+      if (openAdminPage) {
+        // Open admin page in a new window
+        const adminWindow = window.open('/admin', '_blank');
+        
+        // If popup was blocked, provide instructions
+        if (!adminWindow || adminWindow.closed || typeof adminWindow.closed === 'undefined') {
+          toast.warning(
+            <div>
+              Popup blocked! Please enable popups or manually open the admin page at:
+              <div className="mt-2 p-2 bg-gray-100 rounded">
+                <code>{window.location.origin}/admin</code>
+              </div>
+            </div>,
+            { autoClose: false }
+          );
+        }
+      } else {
+        // User chose not to open admin page now, show instructions
+        toast.info(
+          <div>
+            You can process the refund later by:
+            <ol className="mt-2 list-decimal pl-5">
+              <li>Opening the admin page at: <code className="bg-gray-100 p-1 rounded">{window.location.origin}/admin</code></li>
+              <li>Connecting with admin wallet (0x983c601...)</li>
+              <li>Approving the refund to send ETH back to your wallet</li>
+            </ol>
+          </div>,
+          { autoClose: false }
+        );
+      }
+      
+      // In a real app, we'd also send the refund request to the server
       try {
         const response = await fetch('/api/refunds', {
           method: 'POST',
@@ -2134,40 +2236,13 @@ export default function Home() {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to submit refund request');
+          console.error('Failed to submit refund request to server');
         }
       } catch (apiError) {
         console.error('API error:', apiError);
         // Continue with local state update even if API fails
       }
       
-      // Open admin page in a new window instead of relying on a link
-      window.open('/admin', '_blank', 'noopener,noreferrer');
-      
-      // Display toast with instructions for admin
-      toast.info(
-        <div>
-          Refund request submitted! For the demo:
-          <ol className="mt-2 list-decimal pl-5">
-            <li>Use the admin page that just opened in a new window</li>
-            <li>Connect with admin wallet (0x983c601...)</li>
-            <li>Approve the refund to send ETH back to student wallet</li>
-          </ol>
-        </div>,
-        { autoClose: false }
-      );
-      
-      // Remove the purchase from localStorage
-      const storedCourses = localStorage.getItem('purchasedCourses');
-      if (storedCourses) {
-        let coursesArray: string[] = JSON.parse(storedCourses);
-        coursesArray = coursesArray.filter(course => course !== courseTitle);
-        localStorage.setItem('purchasedCourses', JSON.stringify(coursesArray));
-        
-        // Update state to reflect the removal
-        setPurchasedCourses(coursesArray);
-      }
-
       return true;
     } catch (error: any) {
       console.error("Error processing refund:", error);
@@ -2190,7 +2265,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
-        {/* Navbar */}
+      {/* Navbar */}
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -2202,7 +2277,7 @@ export default function Home() {
               setSelectedInterest("")
               router.push("/")
             }}>
-              ERROR_405
+              Web3Wisdom
             </Link>
           </motion.div>
 
@@ -2221,9 +2296,17 @@ export default function Home() {
             <nav className="flex items-center space-x-4">
               {session ? (
                 <>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} style={{ display: 'none' }}>
                     <Button variant="outline" onClick={() => setShowDashboardModal(true)}>
                       Dashboard
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => window.open('https://fanciful-kringle-15ef6b.netlify.app/', '_blank', 'noopener,noreferrer')}
+                    >
+                      Store
                     </Button>
                   </motion.div>
                   {walletAddress ? (
@@ -2333,7 +2416,7 @@ export default function Home() {
 
       {/* Dashboard Modal */}
       <AnimatePresence>
-        {showDashboardModal && (
+        {false && showDashboardModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -2389,6 +2472,65 @@ export default function Home() {
                         : 0
                     }%</p>
                   </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Store Modal */}
+      <AnimatePresence>
+        {false && showDashboardModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              setShowDashboardModal(false);
+              window.open('https://fanciful-kringle-15ef6b.netlify.app/', '_blank', 'noopener,noreferrer');
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-900 rounded-lg p-8 max-w-md w-full cursor-pointer"
+              onClick={e => {
+                e.stopPropagation();
+                window.open('https://fanciful-kringle-15ef6b.netlify.app/', '_blank', 'noopener,noreferrer');
+              }}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Store</h2>
+                /*<button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDashboardModal(false);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >*/
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <ShoppingCart className="h-16 w-16 text-blue-500" />
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Visit Our Store</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    Discover exclusive merchandise and educational resources.
+                  </p>
+                  
+                  <Button 
+                    className="bg-blue-500 hover:bg-blue-600 text-white w-full"
+                  >
+                    Go to Store
+                  </Button>
                 </div>
               </div>
             </motion.div>
@@ -2770,14 +2912,14 @@ export default function Home() {
             className="grid grid-cols-1 md:grid-cols-4 gap-8"
           >
             <motion.div variants={fadeIn}>
-              <h3 className="text-lg font-bold mb-4">ERROR_405</h3>
+              <h3 className="text-lg font-bold mb-4">Web3Wisdom</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 A decentralized education platform for Web3 and blockchain learning.
               </p>
             </motion.div>
 
             <motion.div variants={fadeIn}>
-              <h3 className="text-lg font-bold mb-4">Courses</h3>
+              <h3 className="text-lg font-bold mb-4">Web3Wisdom</h3>
               <ul className="space-y-2 text-gray-600 dark:text-gray-400">
                 <li>
                   <button onClick={() => handleLinkClick("blockchain-basics")} className="hover:text-primary transition-colors duration-200">
@@ -2856,7 +2998,7 @@ export default function Home() {
             transition={{ delay: 0.5 }}
             className="border-t border-gray-200 dark:border-gray-800 mt-8 pt-8 text-center text-gray-600 dark:text-gray-400"
           >
-            <p>© 2025 ERROR_405. All rights reserved.</p>
+            <p>© 2025 Web3Wisdom. All rights reserved.</p>
           </motion.div>
         </div>
       </footer>
@@ -3097,13 +3239,13 @@ export default function Home() {
             >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Create Account</h2>
-                <button
-                  onClick={() => setShowRegisterModal(false)}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
+                    <button
+                      onClick={() => setShowRegisterModal(false)}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
                   <X className="h-5 w-5" />
-                </button>
-              </div>
+                    </button>
+                  </div>
               {registerSuccess ? (
                 <div className="text-center py-8">
                   <motion.div 

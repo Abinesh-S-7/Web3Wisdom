@@ -49,13 +49,61 @@ export async function POST(req: Request) {
       WHERE "userId" = ${user.id} AND "courseTitle" = ${courseTitle}
     `;
     
-    const existingTransaction = existingTransactions.length > 0 ? existingTransactions[0] : null;
+    // Type assertion for raw query result
+    const typedTransactions = existingTransactions as any[];
+    const existingTransaction = typedTransactions.length > 0 ? typedTransactions[0] : null;
 
     // If the course wasn't purchased, return error
     if (!existingTransaction) {
       return NextResponse.json(
         { error: "Course not purchased" },
         { status: 404 }
+      );
+    }
+
+    // Find the course by title
+    const course = await prisma.course.findFirst({
+      where: {
+        title: courseTitle
+      }
+    });
+
+    if (!course) {
+      return NextResponse.json(
+        { error: "Course not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if the course is 100% completed
+    // First, check if the user has an enrollment for this course
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: user.id,
+        courseId: course.id
+      }
+    });
+
+    if (!enrollment) {
+      return NextResponse.json(
+        { error: "Course enrollment not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if course progress is 100%
+    const courseProgress = await prisma.courseProgress.findFirst({
+      where: {
+        userId: user.id,
+        courseId: course.id
+      }
+    });
+
+    // If progress record doesn't exist or progress is less than 100%, reject refund
+    if (!courseProgress || courseProgress.progress < 100) {
+      return NextResponse.json(
+        { error: "Course must be 100% completed before refund" },
+        { status: 400 }
       );
     }
 
@@ -67,20 +115,11 @@ export async function POST(req: Request) {
 
     // Also delete the enrollment for this course if it exists
     try {
-      // Find the course by title
-      const course = await prisma.course.findFirst({
-        where: {
-          title: courseTitle
-        }
-      });
-
-      if (course) {
-        // Delete enrollment if course exists in database
-        const deleteResult = await prisma.$executeRaw`
-          DELETE FROM "Enrollment"
-          WHERE "userId" = ${user.id} AND "courseId" = ${course.id}
-        `;
-      }
+      // Delete enrollment if course exists in database
+      const deleteResult = await prisma.$executeRaw`
+        DELETE FROM "Enrollment"
+        WHERE "userId" = ${user.id} AND "courseId" = ${course.id}
+      `;
     } catch (enrollError) {
       // Just log the error but don't fail the transaction
       console.error("Error deleting enrollment:", enrollError);

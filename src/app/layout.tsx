@@ -7,7 +7,7 @@ import ConnectionStatus from "@/components/ConnectionStatus";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ElevateU",
+  title: "Web3Wisdom",
   description: "Learn blockchain and web3 development",
 };
 

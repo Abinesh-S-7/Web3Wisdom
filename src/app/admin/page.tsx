@@ -40,19 +40,27 @@ export default function AdminPage() {
   const fetchPendingRefunds = async () => {
     setIsLoading(true)
     try {
-      // In a real implementation, this would fetch actual pending refunds from a database
-      // For demo purposes, we'll use mock data
-      setPendingRefunds([
-        {
-          id: "1",
-          userId: "user1",
-          userName: "Test User",
-          courseTitle: "Blockchain Development",
-          walletAddress: "0xbF188D68de8f9C232cC421dF11aa16d06b506BD1",
-          requestDate: new Date().toISOString(),
-          amount: "0.03"
-        }
-      ])
+      // Check localStorage for any pending refund requests
+      const pendingRefundJson = localStorage.getItem('pendingRefund');
+      
+      if (pendingRefundJson) {
+        const refundRequest = JSON.parse(pendingRefundJson);
+        setPendingRefunds([refundRequest]);
+      } else {
+        // In a real implementation, this would fetch actual pending refunds from a database
+        // For demo purposes, we'll use mock data if no localStorage data
+        setPendingRefunds([
+          {
+            id: "1",
+            userId: "user1",
+            userName: "Test User",
+            courseTitle: "Blockchain Development",
+            walletAddress: "0xbF188D68de8f9C232cC421dF11aa16d06b506BD1",
+            requestDate: new Date().toISOString(),
+            amount: "0.03"
+          }
+        ]);
+      }
     } catch (error) {
       console.error("Error fetching pending refunds:", error)
       toast.error("Failed to load pending refunds")
@@ -134,6 +142,15 @@ export default function AdminPage() {
 
       // Update the UI to remove the processed refund
       setPendingRefunds(pendingRefunds.filter(r => r.id !== refund.id))
+      
+      // Clear the refund request from localStorage if it's the one we just processed
+      const pendingRefundJson = localStorage.getItem('pendingRefund');
+      if (pendingRefundJson) {
+        const pendingRefund = JSON.parse(pendingRefundJson);
+        if (pendingRefund.id === refund.id) {
+          localStorage.removeItem('pendingRefund');
+        }
+      }
       
       toast.success("Refund processed successfully!")
     } catch (error: any) {
